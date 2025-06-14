@@ -1,0 +1,17 @@
+version: '3'
+services:
+  waf-dashboard:
+    build:
+      context: .
+      dockerfile: apache-modsec/Dockerfile.combined
+    network_mode: host
+    volumes:
+      - ./apache-modsec/logs:/var/log/apache2
+      - ./dashboard:/app
+      - modsec-rules:/usr/share/modsecurity-crs/rules
+    environment:
+      - LOG_FILE_PATH=/var/log/apache2/modsec_audit.log
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  modsec-rules:
