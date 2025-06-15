@@ -188,6 +188,40 @@ This file is shared with the FastAPI dashboard via volume mount for real-time lo
 * ✅ Python 3.9+ (for standalone dashboard use)
 * ⚙️ Basic understanding of Apache reverse proxying and containerization
 
+
+## 🧪 Example: Setup Static Ip address in Ubuntu  (Linux using `netplan`):
+
+```bash
+sudo nano /etc/netplan/01-netcfg.yaml
+```
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    eth1:
+      addresses: [192.168.50.10/24]
+```
+
+```bash
+sudo netplan apply
+```
+
+> Replace `eth1` with your actual interface name (check with `ip a`).
+
+---
+
+### 🧪 Tip: Identify the Right Interface
+
+Once the VM is booted:
+
+```bash
+ip a
+```
+
+Look for the interface that has **no IP assigned**, usually `enp0s8` or `eth1`, depending on your distro. That's the one connected to the internal network.
+
+
 ---
 
 ## 🧪 Example: PinewoodStore
