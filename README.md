@@ -44,8 +44,8 @@ modsec-docker/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/enochgitgamefied/Modsecurity-Dashboard-Remote.git
-cd Modsecurity-Dashboard-Remote
+git clone https://github.com/enochgitgamefied/Modsecurity-Dashboard-Remote-WAF-LinuxOnly.git
+cd Modsecurity-Dashboard-Remote-WAF-LinuxOnly
 ````
 
 ### 2. Configure Apache Reverse Proxy and ModSecurity
