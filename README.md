@@ -1,3 +1,4 @@
+
 # ModSecurity WAF with FastAPI Dashboard – PinewoodStore Example
 
 This project demonstrates a **Dockerized deployment of ModSecurity** as a Web Application Firewall (WAF), integrated with a custom **FastAPI-based monitoring dashboard**. The example application used is **PinewoodStore**, but the setup can be adapted to protect **any other web application** by modifying configuration.
@@ -7,6 +8,7 @@ This project demonstrates a **Dockerized deployment of ModSecurity** as a Web Ap
 ## 📦 Project Structure
 
 ```
+
 modsec-docker/
 ├── apache-modsec/
 │   ├── apache-config/
@@ -18,20 +20,22 @@ modsec-docker/
 │   └── requirements.txt      # Python dependencies
 ├── docker-compose.yml        # Defines WAF and dashboard services
 └── README.md                 # You are here
-```
+
+````
 
 ---
 
 ## 🚀 How It Works
 
-* **ModSecurity (Apache module)** inspects incoming HTTP traffic and blocks malicious requests based on rule sets.
-* **PinewoodStore** (example web app) is placed **behind the WAF**, so all traffic is filtered before reaching it.
-* The **FastAPI dashboard** reads from `modsec_audit.log`, parses and categorizes traffic:
+- **ModSecurity (Apache module)** inspects incoming HTTP traffic and blocks malicious requests based on rule sets.
+- The WAF acts as a **reverse proxy**, sitting in front of the target application (e.g., PinewoodStore).
+- The **FastAPI dashboard** reads ModSecurity's audit log (`modsec_audit.log`) and displays:
 
-  * ✅ Normal Traffic
-  * 🚫 Blocked Requests (rule violations like 406, 414)
-  * 🔒 Attack Attempts (403 Forbidden)
-* Logs can be **exported as CSV or PDF**, and cleared via a **Reset** function.
+  - ✅ Normal Traffic  
+  - 🚫 Blocked Requests (rule violations like 406, 414)  
+  - 🔒 Attack Attempts (403 Forbidden)
+
+- You can **export logs** to CSV or PDF and **reset** the data via the dashboard.
 
 ---
 
@@ -42,126 +46,189 @@ modsec-docker/
 ```bash
 git clone https://github.com/enochgitgamefied/Modsecurity-Dashboard-Remote.git
 cd Modsecurity-Dashboard-Remote
-```
+````
 
-### 2. Adjust Apache WAF Config
+### 2. Configure Apache Reverse Proxy and ModSecurity
 
-Edit the virtual host and WAF rule configuration file:
+Edit the file:
 
 ```bash
 apache-modsec/apache-config/myapp.conf
 ```
 
-Replace `PinewoodStore`-specific routing with your application’s reverse proxy rules if needed.
+Update the proxy target:
 
-### 3. Launch the Environment
-
-```bash
-docker-compose up --build
+```apache
+ProxyPass / http://<YOUR_APP_HOST>:<PORT>/
+ProxyPassReverse / http://<YOUR_APP_HOST>:<PORT>/
 ```
 
-This will spin up:
+Example:
 
-* `waf`: Apache2 + ModSecurity container
-* `dashboard`: FastAPI log viewer and export interface (accessible at `http://localhost:8000`)
-
-### 4. View the Dashboard
-
-Open your browser and visit:
-
-```
-http://localhost:8000
+```apache
+ProxyPass / http://192.168.1.173:8088/
+ProxyPassReverse / http://192.168.1.173:8088/
 ```
 
-Here, you'll see:
+This tells the WAF to forward traffic to your backend application.
 
-* Realtime stats on request types
-* Breakdown of blocked and attack traffic
-* Filtered views and export options
+> 💡 Note: You can protect **remote** applications by setting the appropriate IP and port.
+
+---
+
+## 🌐 Accessing the WAF and Dashboard
+
+After deployment, access the components like so:
+
+* 🔐 **WAF-Protected Application**:
+  From a browser on any client machine:
+
+  ```
+  http://{WAF-HOST-IP}:8880
+  ```
+
+  (e.g., `http://192.168.1.100:8880`)
+
+  This URL is served through Apache + ModSecurity and routes to your backend app.
+
+* 📊 **Dashboard Interface**:
+
+  ```
+  http://{WAF-HOST-IP}:8000
+  ```
+
+  This opens the FastAPI dashboard UI with:
+
+  * Realtime traffic stats
+  * Blocked request details
+  * Export / reset functions
+  * Rule creation/management console
+
+---
+
+## 🧠 Why Use Host Networking?
+
+This stack uses `network_mode: host` and is designed for **Linux-only deployment**. Here's why:
+
+* Docker bridge networking hides the real client IP (appears as `172.17.0.1`).
+* Host networking allows ModSecurity to see **true client IP addresses**, which are logged and shown on the dashboard.
+* This is critical for real-world monitoring, threat tracing, and forensic analysis.
+
+> ⚠️ Not compatible with Windows/Mac due to lack of host mode support in Docker.
 
 ---
 
 ## 🔁 Switching to a Different App
 
-To use this WAF stack for **another web application**:
+To use this WAF for another backend application:
 
-1. Replace `PinewoodStore` config with your app’s setup:
+### Step 1: Update Proxy Configuration
 
-   * Edit `apache-config/myapp.conf` to forward traffic to your app.
-   * Ensure ports and domain names match your backend.
-2. Rebuild and restart:
+Edit the reverse proxy section in:
+
+```bash
+apache-modsec/apache-config/myapp.conf
+```
+
+Change this:
+
+```apache
+ProxyPass / http://192.168.1.173:8088/
+ProxyPassReverse / http://192.168.1.173:8088/
+```
+
+To point to your own app's IP and port.
+
+### Step 2: Rebuild & Restart
 
 ```bash
 docker-compose down
 docker-compose up --build
 ```
 
-The FastAPI dashboard remains unchanged — it will parse any standard ModSecurity audit log.
+> ✅ The FastAPI dashboard does **not need any changes**, as it parses generic ModSecurity logs.
 
 ---
 
-## 📄 Features
+## 🛠️ Configurable Components
 
-* ✅ **WAF Protection** with Apache + ModSecurity
-* 🖥️ **FastAPI Dashboard** for inspection and monitoring
-* 📊 Export to **CSV** / **PDF**
-* ♻️ **Reset logs** for clean testing
-* 🔧 Easily adaptable to **any backend**
+* **Ruleset**: You can mount your own custom rule directory and set `Include` paths.
+* **Audit Log Path**: Ensure Apache logs to `/var/log/apache2/modsec_audit.log`, which is mounted into the dashboard container.
+* **Virtual Hosts**: You can create multiple `<VirtualHost>` blocks to serve different apps on different ports or domains.
 
 ---
 
 ## 📂 Logs Location
 
-ModSecurity logs are stored inside the container:
+ModSecurity audit logs are written to:
 
 ```
 /var/log/apache2/modsec_audit.log
 ```
 
-This file is **mounted and readable** by the dashboard for real-time analysis.
+This file is shared with the FastAPI dashboard via volume mount for real-time log analysis.
 
 ---
 
-## 🛡️ Requirements
+## 📄 Features
 
-* Docker + Docker Compose
-* Python 3.9+ (if running the dashboard outside Docker)
-* Basic knowledge of Apache reverse proxy setup
+* ✅ Full WAF protection with Apache + ModSecurity
+* 📈 Live FastAPI dashboard for log analysis
+* 📁 Log export: CSV / PDF
+* ✏️ Create / disable rules from the UI
+* 🔄 Reset logs for fresh testing
+* 🔧 Adaptable to **any backend** behind the WAF
 
 ---
 
-## 📘 Example Use Case
+## 🛑 Requirements
 
-This setup is currently demonstrated with the **PinewoodStore** app — an e-commerce demo — where:
+* ✅ **Linux OS** (host networking required)
+* ✅ Docker + Docker Compose
+* ✅ Python 3.9+ (for standalone dashboard use)
+* ⚙️ Basic understanding of Apache reverse proxying and containerization
 
-* Common attacks like SQLi or XSS are blocked by ModSecurity.
-* Attack traffic shows up as 403 in the dashboard.
-* Blocked but non-malicious anomalies show up as 406/414.
+---
+
+## 🧪 Example: PinewoodStore
+
+This project uses `PinewoodStore` — a test e-commerce platform — to demonstrate:
+
+* Detection of SQL Injection, XSS, and malformed input
+* Real-time dashboard display of blocked / allowed traffic
+* IP-aware attack detection thanks to host networking
+
+---
+
+## 📺 Instructional Video
+
+🎥 A full tutorial covering setup, configuration, and usage of this project will be released soon on YouTube.
+Stay tuned!
+
+---
+
+## 🖼️ UI Screenshots
+
+### Top
+
+<img width="1280" alt="image" src="https://github.com/user-attachments/assets/9c61f416-7af3-449b-9a73-0aa788e65cc0" />
+
+### Bottom
+
+<img width="1280" alt="image" src="https://github.com/user-attachments/assets/7c8f5372-70ea-4c31-84e4-4dc924d84bd6" />
+
+### 🔐 New Feature – WAF Rule Management Console
+
+![Modsecurity Frontend Dashboard with Rule Management Feature](https://github.com/user-attachments/assets/182dd96e-fa26-411b-81f8-6e655a5a62ed)
+
+### ✍️ Feature Upgrade – Create Custom Rule from Dashboard
+
+<img width="1280" alt="image" src="https://github.com/user-attachments/assets/57626234-4596-4684-919d-83e3856b2e94" />
+
+---
 
 ## 🤝 License
 
 MIT or your preferred open-source license.
-
-Top
-<img width="1280" alt="image" src="https://github.com/user-attachments/assets/9c61f416-7af3-449b-9a73-0aa788e65cc0" />
-
-
-Bottom
-<img width="1280" alt="image" src="https://github.com/user-attachments/assets/7c8f5372-70ea-4c31-84e4-4dc924d84bd6" />
-
-New Feature - WAF Rule Management Console
-![Modsecurity Frontend Dashboard with Rule Managment Feature](https://github.com/user-attachments/assets/182dd96e-fa26-411b-81f8-6e655a5a62ed)
-
-Feature Upgrade - Create custom Rule form the Dashboard
-
-<img width="1280" alt="image" src="https://github.com/user-attachments/assets/57626234-4596-4684-919d-83e3856b2e94" />
-
-
-
-
-
-
-
-
 
 
