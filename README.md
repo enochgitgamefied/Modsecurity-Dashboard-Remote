@@ -236,8 +236,8 @@ This project uses `PinewoodStore` — a test e-commerce platform — to demonstr
 
 ## 📺 Instructional Video
 
-🎥 A full tutorial covering setup, configuration, and usage of this project will be released soon on YouTube.
-Stay tuned!
+🎥 A full tutorial covering setup, configuration, and usage of this project is on Youtube at the link provided below.
+https://www.youtube.com/watch?v=JgcysqiVRII
 
 ---
 
